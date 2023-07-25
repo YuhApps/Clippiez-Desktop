@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clippiez</title>
+    <style>
+        html {
+            user-select: none;
+            --color-header-foreground: #404040;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            font-family: sans-serif;
+            height: 100vh;
+            max-height: 100vh;
+            min-height: 100vh;
+            margin: 0;
+            overflow-y: hidden;
+            padding: 0;
+        }
+        header {
+            background: white;
+            box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+            display: flex;
+            flex-direction: row;
+            padding: 8px;
+            z-index: 1;
+            -webkit-app-region: drag;
+        }
+        header * {
+            -webkit-app-region: no-drag;
+        }
+        header span {
+            -webkit-app-region: drag;
+        }
+        header input {
+            border: 1px solid var(--color-header-foreground);
+            border-radius: 4px;
+            flex: 1;
+            outline: none;
+            padding: 4px;
+            text-align: center;
+        }
+        button {
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            outline: none;
+            padding: 4px;
+            transition-duration: .25s;
+        }
+        button:hover {
+            background: #80808060;
+        }
+        svg {
+            display: block;
+            height: 24px;
+            width: 24px;
+        }
+        svg path {
+            fill: var(--color-header-foreground);
+        }
+        main {
+            flex: 1;
+            overflow-y: scroll;
+        }
+        main ul {
+            list-style: none;
+            margin: auto;
+            padding:  20px 0;
+            text-align: center;
+        }
+        main li {
+            align-items: stretch;
+            border-radius: 4px;
+            box-shadow: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px, rgb(209, 213, 219) 0px 0px 0px 1px inset;
+            box-sizing: border-box;
+            display: inline-flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            justify-items: center;
+            margin: 8px;
+            max-width: 640px;
+            padding: 12px;
+            text-align: left;
+            width: 100%;
+        }
+        main li span {
+            flex: 1;
+            margin-right: 8px;
+        }
+        .hidden {
+            display: none;
+        }
+        .close:hover {
+            background: #ff5e57;
+        }
+        .maximize:hover, .unmaximize:hover {
+            background: #28c840;
+        }
+        .minimize:hover {
+            background: #ffbe2c;
+        }
+        .new-tab:hover {
+            background: #36c0ff;
+        }
+    </style>
+</head>
+<body class="hidden">
+    <header>
+        <span class="hide-on-win32" style="width: 80px;"></span>
+        <button class="hide-on-darwin" title="More options" onclick="showOptions(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="m11.998 2c5.517 0 9.997 4.48 9.997 9.998 0 5.517-4.48 9.997-9.997 9.997-5.518 0-9.998-4.48-9.998-9.997 0-5.518 4.48-9.998 9.998-9.998zm0 1.5c-4.69 0-8.498 3.808-8.498 8.498s3.808 8.497 8.498 8.497 8.497-3.807 8.497-8.497-3.807-8.498-8.497-8.498zm2.502 8.495c0-.69.56-1.25 1.25-1.25s1.25.56 1.25 1.25-.56 1.25-1.25 1.25-1.25-.56-1.25-1.25zm-3.75 0c0-.69.56-1.25 1.25-1.25s1.25.56 1.25 1.25-.56 1.25-1.25 1.25-1.25-.56-1.25-1.25zm-3.75 0c0-.69.56-1.25 1.25-1.25s1.25.56 1.25 1.25-.56 1.25-1.25 1.25-1.25-.56-1.25-1.25z"/>
+                <!-- <path d="M24 6h-24v-4h24v4zm0 4h-24v4h24v-4zm0 8h-24v4h24v-4z"/> -->
+            </svg>
+        </button>
+        <span class="hide-on-darwin" style="width: 8px;"></span>
+        <button class="hide-on-darwin" title="Add new clip" onclick="addClip()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="m9.134 19.319 11.587-11.588c.171-.171.279-.423.279-.684 0-.229-.083-.466-.28-.662l-3.115-3.104c-.185-.185-.429-.277-.672-.277s-.486.092-.672.277l-11.606 11.566c-.569 1.763-1.555 4.823-1.626 5.081-.02.075-.029.15-.029.224 0 .461.349.848.765.848.511 0 .991-.189 5.369-1.681zm-3.27-3.342 2.137 2.137-3.168 1.046zm.955-1.166 10.114-10.079 2.335 2.327-10.099 10.101z"/>
+            </svg>
+        </button>
+        <span class="hide-on-darwin" style="width: 20px;"></span>
+        <input type="text" placeholder="Search">
+        <span class="hide-on-darwin" style="width: 8px;"></span>
+        <span class="hide-on-win32" style="width: 20px;"></span>
+        <button class="hide-on-win32"  title="Add new clip" onclick="addClip()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="m9.134 19.319 11.587-11.588c.171-.171.279-.423.279-.684 0-.229-.083-.466-.28-.662l-3.115-3.104c-.185-.185-.429-.277-.672-.277s-.486.092-.672.277l-11.606 11.566c-.569 1.763-1.555 4.823-1.626 5.081-.02.075-.029.15-.029.224 0 .461.349.848.765.848.511 0 .991-.189 5.369-1.681zm-3.27-3.342 2.137 2.137-3.168 1.046zm.955-1.166 10.114-10.079 2.335 2.327-10.099 10.101z"/>
+            </svg>
+        </button>
+        <span style="width: 4px;"></span>
+        <button class="hide-on-win32"  title="More options" onclick="showOptions(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="m11.998 2c5.517 0 9.997 4.48 9.997 9.998 0 5.517-4.48 9.997-9.997 9.997-5.518 0-9.998-4.48-9.998-9.997 0-5.518 4.48-9.998 9.998-9.998zm0 1.5c-4.69 0-8.498 3.808-8.498 8.498s3.808 8.497 8.498 8.497 8.497-3.807 8.497-8.497-3.807-8.498-8.497-8.498zm2.502 8.495c0-.69.56-1.25 1.25-1.25s1.25.56 1.25 1.25-.56 1.25-1.25 1.25-1.25-.56-1.25-1.25zm-3.75 0c0-.69.56-1.25 1.25-1.25s1.25.56 1.25 1.25-.56 1.25-1.25 1.25-1.25-.56-1.25-1.25zm-3.75 0c0-.69.56-1.25 1.25-1.25s1.25.56 1.25 1.25-.56 1.25-1.25 1.25-1.25-.56-1.25-1.25z"/>
+                <!-- <path d="M24 6h-24v-4h24v4zm0 4h-24v4h24v-4zm0 8h-24v4h24v-4z"/> -->
+            </svg>
+        </button>
+        <span style="width: 4px;"></span>
+        <button class="hide-on-darwin minimize" onclick="minimize()" title="Minimize">
+            <svg clip-rule="evenodd" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="m21 11.75c0-.414-.336-.75-.75-.75h-16.5c-.414 0-.75.336-.75.75s.336.75.75.75h16.5c.414 0 .75-.336.75-.75z"/>
+            </svg>
+        </button>
+        <span style="width: 4px;"></span>
+        <button class="hide-on-darwin close" onclick="window.close()" title="Close">
+            <svg clip-rule="evenodd" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="m12 10.93 5.719-5.72c.146-.146.339-.219.531-.219.404 0 .75.324.75.749 0 .193-.073.385-.219.532l-5.72 5.719 5.719 5.719c.147.147.22.339.22.531 0 .427-.349.75-.75.75-.192 0-.385-.073-.531-.219l-5.719-5.719-5.719 5.719c-.146.146-.339.219-.531.219-.401 0-.75-.323-.75-.75 0-.192.073-.384.22-.531l5.719-5.719-5.72-5.719c-.146-.147-.219-.339-.219-.532 0-.425.346-.749.75-.749.192 0 .385.073.531.219z"/>
+            </svg>
+        </button>
+    </header>
+    <main>
+        <ul></ul>
+    </main>
+    <script>
+        const { ipcRenderer } = require('electron')
+        const input = document.querySelector('input')
+        const ul = document.querySelector('ul')
+
+        ipcRenderer.on('update', (e, clips) => {
+            for (clip of clips) {
+                let li = document.createElement('li')
+                li.style.background = clip.background || 'white'
+                li.innerHTML = `
+                    <span>${clip.text}</span>
+                    <button title="Copy" onclick="copy('${clip.text}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="m6 18h-3c-.48 0-1-.379-1-1v-14c0-.481.38-1 1-1h14c.621 0 1 .522 1 1v3h3c.621 0 1 .522 1 1v14c0 .621-.522 1-1 1h-14c-.48 0-1-.379-1-1zm1.5-10.5v13h13v-13zm9-1.5v-2.5h-13v13h2.5v-9.5c0-.481.38-1 1-1z"/>
+                        </svg>
+                    </button>
+                    <button title="Delete clip" onclick="deleteClip(this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="m12.002 2.005c5.518 0 9.998 4.48 9.998 9.997 0 5.518-4.48 9.998-9.998 9.998-5.517 0-9.997-4.48-9.997-9.998 0-5.517 4.48-9.997 9.997-9.997zm0 1.5c-4.69 0-8.497 3.807-8.497 8.497s3.807 8.498 8.497 8.498 8.498-3.808 8.498-8.498-3.808-8.497-8.498-8.497zm4.253 7.75h-8.5c-.414 0-.75.336-.75.75s.336.75.75.75h8.5c.414 0 .75-.336.75-.75s-.336-.75-.75-.75z"/>
+                        </svg>
+                    </button>
+                    `
+                ul.appendChild(li)
+            }
+        })
+
+        ipcRenderer.on('platform', (e, platform) => {
+            document.querySelectorAll('.hide-on-' + platform).forEach((el) => el.classList.add('hidden'))
+            document.body.classList.remove('hidden')
+        })
+
+        ipcRenderer.on('delete-all', (e) => ul.innerHTML = '')
+
+        input.onkeyup = (e) => {
+            let text = input.value.toLowerCase()
+            let lis = document.querySelectorAll('li')
+            lis.forEach((li) => {
+                if (text.length === 0) {
+                    li.classList.remove('hidden')
+                } else if (li.querySelector('span').textContent.toLowerCase().indexOf(text) > -1) {
+                    li.classList.remove('hidden')
+                } else {
+                    li.classList.add('hidden')
+                }
+            })
+        }
+
+        function minimize() {
+            ipcRenderer.send('minimize-main-window')
+        }
+
+        function addClip() {
+            ipcRenderer.send('new')
+        }
+
+        function showOptions(button) {
+            let bounds = button.getBoundingClientRect()
+            ipcRenderer.send('show-options', { x: bounds.x, y: bounds.y })
+        }
+
+        function copy(text) {
+            navigator.clipboard.writeText(text)
+        }
+
+        function deleteClip(button) {
+            if (confirm('Delete the clip?\nThis cannot be undone.')) {
+                let li = button.parentElement
+                let index = Array.from(ul.children).indexOf(li)
+                ipcRenderer.send('delete-clip', index)
+                ul.removeChild(li)
+            }
+        }
+    </script>
+</body>
+</html>

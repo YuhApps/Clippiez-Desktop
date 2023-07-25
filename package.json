@@ -1,0 +1,29 @@
+{
+  "name": "clippiez-desktop",
+  "productName": "Clippiez",
+  "version": "1.0.0",
+  "description": "Clippiez app for Windows, Mac and Linux.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "npx electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "clippiez",
+    "clipboard",
+    "copy",
+    "paste",
+    "templates"
+  ],
+  "build": {
+    "mac": {
+      
+    }
+  },
+  "author": "Yuh Apps",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^25.3.1",
+    "electron-builder": "^23.6.0"
+  }
+}
