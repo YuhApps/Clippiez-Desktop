@@ -1,5 +1,5 @@
 {
-  "name": "clippiez-desktop",
+  "name": "clippiez",
   "productName": "Clippiez",
   "version": "1.0.0",
   "description": "Clippiez app for Windows, Mac and Linux.",
@@ -20,7 +20,7 @@
       
     }
   },
-  "author": "Yuh Apps",
+  "author": "Yuh Apps <yuhapps@gmail.com>",
   "license": "ISC",
   "devDependencies": {
     "electron": "^25.3.1",

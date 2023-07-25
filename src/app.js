@@ -195,7 +195,7 @@ function createMainWindow() {
                 background: '#C8E6C9',
             },
             {
-                text: 'To get started, click the pen button on the top ' + (platform === 'darwin' ? 'right' : 'left') + ' corner of Clippiez to create a new clip.',
+                text: 'To get started, click the pen button on the top ' + (platform === 'darwin' || platform === 'linux' ? 'right' : 'left') + ' corner of Clippiez to create a new clip.',
                 background: '#BBDEFB',
             },
             {
@@ -218,7 +218,7 @@ function createMainWindow() {
         minHeight: 400,
         minWidth: 600,
         fullscreenable: false,
-        titleBarStyle: platform === 'darwin' ? 'hiddenInset' : 'hidden',
+        titleBarStyle: platform === 'darwin' ? 'hiddenInset' : platform === 'win32' ? 'hidden' : 'default',
         show: false,
         webPreferences: {
             contextIsolation: false,
