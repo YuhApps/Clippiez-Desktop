@@ -16,8 +16,12 @@
     "templates"
   ],
   "build": {
+    "productName": "Clippiez",
     "mac": {
       
+    },
+    "linux": {
+      "icon": "build/icon.icns"
     }
   },
   "author": "Yuh Apps <yuhapps@gmail.com>",
