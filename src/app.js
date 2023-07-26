@@ -58,6 +58,7 @@ app.whenReady().then(() => {
                             message: 'Delete all clips?\nThis cannot be undone.',
                             buttons: ['Delete', 'Cancel'],
                             defaultId: 1,
+                            noLink: true,
                         }).then(({ response }) => {
                             if (response === 0) {
                                 browserWindow.webContents.send('delete-all')
@@ -126,6 +127,7 @@ ipcMain.on('show-options', (e, bounds) => {
                     message: 'Delete all clips?\nThis cannot be undone.',
                     buttons: ['Delete', 'Cancel'],
                     defaultId: 1,
+                    noLink: true
                 }).then(({ response }) => {
                     if (response === 0) {
                         browserWindow.webContents.send('delete-all')
@@ -172,7 +174,8 @@ function showAbout() {
         message: 'Clippiez',
         detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
         buttons: ['OK & Close', 'YUH APPS Website'],
-        defaultId: 0
+        defaultId: 0,
+        noLink: true
     }).then(({ response }) => {
         if (response === 1) shell.openExternal('https://yuhapps.dev')
     })
