@@ -96,6 +96,7 @@ ipcMain.on('new', (e) => {
         width: 600,
         modal: true,
         parent: mainWindow,
+        titleBarStyle: 'hidden',
         webPreferences: {
             contextIsolation: false,
             nodeIntegration: true
