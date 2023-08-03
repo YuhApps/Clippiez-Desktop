@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, Menu, nativeTheme, dialog, shell } = require('electron')
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
 
 let clips = []
@@ -40,6 +41,13 @@ app.whenReady().then(() => {
         {
             label: 'File',
             submenu: [
+                {
+                    label: 'Add new clip',
+                    click: (menuItem, browserWindow, event) => createAddClipWindow(browserWindow)
+                },
+                {
+                    type: 'separator'
+                },
                 {
                     label: 'Import from JSON',
                     click: (menuItem, browserWindow, event) => importFromJson(browserWindow)
@@ -91,22 +99,7 @@ ipcMain.on('delete-clip', (e, index) => {
 })
 
 ipcMain.on('new', (e) => {
-    let addWindow = new BrowserWindow({
-        height: 400,
-        width: 600,
-        modal: true,
-        frame: false,
-        parent: mainWindow,
-        titleBarStyle: 'hidden',
-        webPreferences: {
-            contextIsolation: false,
-            nodeIntegration: true
-        }
-    })
-    addWindow.loadFile('src/new.html')
-    addWindow.webContents.on('did-finish-load', (e) => {
-
-    })
+    createAddClipWindow(mainWindow)
 })
 
 ipcMain.on('show-options', (e, bounds) => {
@@ -168,7 +161,13 @@ ipcMain.on('clip-added', (e, text, background) => {
     }
 })
 
-ipcMain.on('minimize-main-window', (e) => mainWindow.minimize())
+ipcMain.on('minimize:main-window', () => mainWindow.minimize())
+
+ipcMain.on('maximize:main-window', () => mainWindow.maximize())
+
+ipcMain.on('unmaximize:main-window', () => mainWindow.unmaximize())
+
+ipcMain.on('close:main-window', () => mainWindow.close())
 
 function showAbout() {
     let build_date = '(2023.07.25)'
@@ -177,7 +176,8 @@ function showAbout() {
         detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
         buttons: ['OK & Close', 'YUH APPS Website'],
         defaultId: 0,
-        noLink: true
+        noLink: true,
+        normalizeAccessKeys: process.platform === 'win32'
     }).then(({ response }) => {
         if (response === 1) shell.openExternal('https://yuhapps.dev')
     })
@@ -233,6 +233,12 @@ function createMainWindow() {
     if (platform === 'darwin') {
         mainWindow.setWindowButtonPosition({ x: 12, y: 16 })
     }
+    if (os.platform() === 'darwin' && platform !== 'darwin') {
+        // This method is convenient for developers to test behaviors of Windows and Linux on Mac.
+        // Simply set platform = 'win32' or 'linux', and the window will disable the traffic light buttons.
+        // Thus it will behave like it's on Windows or Linux.
+        mainWindow.setWindowButtonVisibility(platform === 'linux')
+    }
     mainWindow.loadFile('src/index.html')
     mainWindow.on('ready-to-show', () => {
         mainWindow.show()
@@ -240,6 +246,38 @@ function createMainWindow() {
     mainWindow.webContents.on('did-finish-load', (e) => {
         mainWindow.webContents.send('platform', platform)
         mainWindow.webContents.send('update', clips)
+    })
+    mainWindow.webContents.on('context-menu', (e, { x, y, editFlags, selectionText }) => {
+        console.log(editFlags, selectionText, Boolean(selectionText))
+        if (editFlags.canPaste) {
+            Menu.buildFromTemplate([
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' }
+            ]).popup({ x, y })
+        } else if (selectionText) {
+            Menu.buildFromTemplate([
+                { role: 'copy', label: 'Copy «' + (selectionText.length > 20 ? selectionText.substring(0, 20) + '...' : selectionText) +'»' },
+            ]).popup({ x, y })
+        }
+    })
+}
+
+function createAddClipWindow(browserWindow) {
+    let addWindow = new BrowserWindow({
+        height: 400,
+        width: 600,
+        modal: true,
+        frame: false,
+        parent: browserWindow,
+        webPreferences: {
+            contextIsolation: false,
+            nodeIntegration: true
+        }
+    })
+    addWindow.loadFile('src/new.html')
+    addWindow.webContents.on('did-finish-load', (e) => {
+
     })
 }
 
