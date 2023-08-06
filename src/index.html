@@ -224,9 +224,11 @@
         const ul = document.querySelector('ul')
         const audio = document.querySelector('audio')
 
+        /*
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
             document.body.classList[event.matches ? 'add' : 'remove']('dark')
         })
+        */
 
         ipcRenderer.on('update', (e, clips) => {
             for (clip of clips) {

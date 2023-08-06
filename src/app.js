@@ -4,9 +4,18 @@ const os = require('os')
 const path = require('path')
 
 let clips = []
+let settings
 let mainWindow
 
 app.whenReady().then(() => {
+    if (fs.existsSync(path.join(app.getPath('userData'), 'settings.json'))) {
+        settings = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'settings.json')))
+    } else {
+        settings = {
+            'appearance': 'system',
+            'always_on_top': false,
+        }
+    }
     let menu = [
         {
             label: 'Clippiez',
@@ -20,13 +29,63 @@ app.whenReady().then(() => {
                 },
                 {
                     label: 'Always on top',
-                    checked: false,
-                    type: 'checkbox',
-                    click: (menuItem, browserWindow, event) => {
-                        let aot = browserWindow.isAlwaysOnTop()
-                        browserWindow.setAlwaysOnTop(!aot)
-                        menuItem.checked = !aot
-                    }
+                    submenu: [
+                        {
+                            label: 'On',
+                            checked: settings['always_on_top'] === true,
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                browserWindow.setAlwaysOnTop(true)
+                                settings['always_on_top'] = true
+                                menuItem.checked = true
+                            }
+                        },
+                        {
+                            label: 'Off',
+                            checked: settings['always_on_top'] === false,
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                browserWindow.setAlwaysOnTop(false)
+                                settings['always_on_top'] = false
+                                menuItem.checked = true
+                            }
+                        }
+                    ]
+                },
+                {
+                    label: 'Appearance',
+                    submenu: [
+                        {
+                            label: 'System',
+                            checked: settings['appearance'] === 'system',
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['appearance'] = 'system'
+                                menuItem.checked = true
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
+                            }
+                        },
+                        {
+                            label: 'Light',
+                            checked: settings['appearance'] === 'light',
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['appearance'] = 'light'
+                                menuItem.checked = true
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
+                            }
+                        },
+                        {
+                            label: 'Dark',
+                            checked: settings['appearance'] === 'dark',
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['appearance'] = 'dark'
+                                menuItem.checked = true
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
+                            }
+                        },
+                    ]
                 },
                 { type: 'separator' },
                 { role: 'services' },
@@ -88,8 +147,14 @@ app.whenReady().then(() => {
 app.on('window-all-closed', app.quit)
 
 app.on('quit', () => {
-    let json = JSON.stringify(clips)
-    fs.writeFileSync(app.getPath('userData') + '/clips.json', json)
+    fs.writeFileSync(path.join(app.getPath('userData'), 'clips.json'), JSON.stringify(clips))
+    fs.writeFileSync(path.join(app.getPath('userData'), 'settings.json'), JSON.stringify(settings))
+})
+
+nativeTheme.addListener('updated', () => {
+    if (settings['appearance'] === 'system') {
+        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
+    }
 })
 
 ipcMain.on('delete-clip', (e, index) => {
@@ -103,6 +168,7 @@ ipcMain.on('new', (e) => {
 })
 
 ipcMain.on('show-options', (e, bounds) => {
+    let platform = process.platform
     let menu = Menu.buildFromTemplate([
         {
             label: 'Import from JSON',
@@ -136,9 +202,66 @@ ipcMain.on('show-options', (e, bounds) => {
         },
         {
             label: 'Always on top',
-            checked: BrowserWindow.getFocusedWindow().isAlwaysOnTop(),
-            type: 'checkbox',
-            click: (menuItem, browserWindow, event) => browserWindow.setAlwaysOnTop(!browserWindow.isAlwaysOnTop())
+            submenu: [
+                {
+                    label: 'On',
+                    checked: settings['always_on_top'] === true,
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        browserWindow.setAlwaysOnTop(true)
+                        settings['always_on_top'] = true
+                        menuItem.checked = true
+                    }
+                },
+                {
+                    label: 'Off',
+                    checked: settings['always_on_top'] === false,
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        browserWindow.setAlwaysOnTop(false)
+                        settings['always_on_top'] = false
+                        menuItem.checked = true
+                    }
+                }
+            ]
+        },
+        {
+            label: 'Appearance',
+            submenu: [
+                {
+                    label: 'System',
+                    checked: settings['appearance'] === 'system',
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['appearance'] = 'system'
+                        menuItem.checked = true
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors))
+                    }
+                },
+                {
+                    label: 'Light',
+                    checked: settings['appearance'] === 'light',
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['appearance'] = 'light'
+                        menuItem.checked = true
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors))
+                    }
+                },
+                {
+                    label: 'Dark',
+                    checked: settings['appearance'] === 'dark',
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['appearance'] = 'dark'
+                        menuItem.checked = true
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors))
+                    }
+                },
+            ]
+        },
+        {
+            type: 'separator'
         },
         {
             label: 'About Clippiez',
@@ -170,7 +293,7 @@ ipcMain.on('unmaximize:main-window', () => mainWindow.unmaximize())
 ipcMain.on('close:main-window', () => mainWindow.close())
 
 function showAbout() {
-    let build_date = '(2023.07.25)'
+    let build_date = '(2023.08.07)'
     dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
         message: 'Clippiez',
         detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
@@ -184,10 +307,10 @@ function showAbout() {
 }
 
 function createMainWindow() {
-    let platform = 'win32' // process.platform
-    let dark = nativeTheme.shouldUseDarkColors
-    if (fs.existsSync(app.getPath('userData') + path.sep + 'clips.json')) {
-        let buffer = fs.readFileSync(app.getPath('userData') + path.sep + 'clips.json')
+    let platform = process.platform
+    let dark = settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark'
+    if (fs.existsSync(path.join(app.getPath('userData'), 'clips.json'))) {
+        let buffer = fs.readFileSync(path.join(app.getPath('userData'), 'clips.json'))
         clips = JSON.parse(String(buffer))
     } else if (clips.length === 0) {
         clips = [
@@ -242,12 +365,10 @@ function createMainWindow() {
         mainWindow.setWindowButtonVisibility(platform === 'linux')
     }
     mainWindow.loadFile('src/index.html')
-    mainWindow.on('ready-to-show', () => {
-        mainWindow.show()
-    })
     mainWindow.webContents.on('did-finish-load', (e) => {
         mainWindow.webContents.send('platform', platform, dark)
         mainWindow.webContents.send('update', clips)
+        mainWindow.show()
     })
     mainWindow.webContents.on('context-menu', (e, { x, y, editFlags, selectionText }) => {
         console.log(editFlags, selectionText, Boolean(selectionText))
@@ -266,20 +387,26 @@ function createMainWindow() {
 }
 
 function createAddClipWindow(browserWindow) {
+    let platform = process.platform
+    let dark = settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark'
     let addWindow = new BrowserWindow({
+        backgroundColor: dark ? (platform === 'darwin' ? '#202020' : '#00000') : '#FFFFFF',
         height: 400,
         width: 600,
         modal: true,
         frame: false,
         parent: browserWindow,
+        show: false,
         webPreferences: {
             contextIsolation: false,
             nodeIntegration: true
         }
     })
     addWindow.loadFile('src/new.html')
+    // addWindow.on('ready-to-show', () => addWindow.show())
     addWindow.webContents.on('did-finish-load', (e) => {
-
+        addWindow.webContents.send('platform', platform, dark)
+        addWindow.show()
     })
 }
 
