@@ -1,4 +1,3 @@
 .DS_Store
 dist/
-electron-builder.env
 node_modules/

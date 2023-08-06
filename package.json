@@ -1,7 +1,7 @@
 {
   "name": "clippiez",
   "productName": "Clippiez",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Clippiez app for Windows, Mac and Linux.",
   "main": "src/app.js",
   "scripts": {
@@ -17,10 +17,14 @@
   ],
   "build": {
     "appId": "dev.yuhapps.clippiez",
+    "afterSign": "./notarize.js",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-    "productName": "Clippiez",
+    "asar": false,
     "mac": {
       "notarize": false
+    },
+    "win": {
+      "artifactName": "${productName}-${version}-windows-${arch}.${ext}"
     },
     "linux": {
       "icon": "build/icon.icns"

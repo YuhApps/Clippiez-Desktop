@@ -184,8 +184,8 @@ function showAbout() {
 }
 
 function createMainWindow() {
-    nativeTheme.themeSource = 'light'
-    let platform = process.platform
+    let platform = 'win32' // process.platform
+    let dark = nativeTheme.shouldUseDarkColors
     if (fs.existsSync(app.getPath('userData') + path.sep + 'clips.json')) {
         let buffer = fs.readFileSync(app.getPath('userData') + path.sep + 'clips.json')
         clips = JSON.parse(String(buffer))
@@ -218,6 +218,7 @@ function createMainWindow() {
         ]
     }
     mainWindow = new BrowserWindow({
+        backgroundColor: dark ? (platform === 'darwin' ? '#202020' : '#00000') : '#FFFFFF',
         height: 600,
         width: 800,
         minHeight: 400,
@@ -227,7 +228,8 @@ function createMainWindow() {
         show: false,
         webPreferences: {
             contextIsolation: false,
-            nodeIntegration: true
+            nodeIntegration: true,
+            scrollBounce: false
         }
     })
     if (platform === 'darwin') {
@@ -244,7 +246,7 @@ function createMainWindow() {
         mainWindow.show()
     })
     mainWindow.webContents.on('did-finish-load', (e) => {
-        mainWindow.webContents.send('platform', platform)
+        mainWindow.webContents.send('platform', platform, dark)
         mainWindow.webContents.send('update', clips)
     })
     mainWindow.webContents.on('context-menu', (e, { x, y, editFlags, selectionText }) => {
