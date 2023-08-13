@@ -1,7 +1,10 @@
 const { app, BrowserWindow, ipcMain, Menu, nativeTheme, dialog, shell } = require('electron')
+const { autoUpdater } = require('electron-updater')
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
+
+const PLATFORM = undefined
 
 let clips = []
 let settings
@@ -14,8 +17,76 @@ app.whenReady().then(() => {
         settings = {
             'appearance': 'system',
             'always_on_top': false,
+            'font': 'system'
         }
     }
+    createAppMenu()
+    createMainWindow()
+    autoUpdater.checkForUpdatesAndNotify()
+})
+
+app.on('window-all-closed', app.quit)
+
+app.on('quit', () => {
+    fs.writeFileSync(path.join(app.getPath('userData'), 'clips.json'), JSON.stringify(clips))
+    fs.writeFileSync(path.join(app.getPath('userData'), 'settings.json'), JSON.stringify(settings))
+})
+
+nativeTheme.addListener('updated', () => {
+    if (settings['appearance'] === 'system') {
+        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, nativeTheme.shouldUseDarkColors, settings['font'] === 'lato'))
+    }
+})
+
+ipcMain.on('delete-clip', (e, index) => {
+    if (clips.length > 0) {
+        clips.splice(index, 1)
+    }
+})
+
+ipcMain.on('new', (e) => {
+    createAddClipWindow(mainWindow)
+})
+
+ipcMain.on('show-options', (e, bounds) => {
+    createAppOptionsMenu(bounds)
+})
+
+ipcMain.on('clip-added', (e, text, background) => {
+    try {
+        let newClips = JSON.parse(text)
+        clips = [...clips, ...newClips]
+        mainWindow.webContents.send('update', newClips)
+    } catch (err) {
+        let newClip = { text, background }
+        clips.push(newClip)
+        mainWindow.webContents.send('update', [newClip])
+    }
+})
+
+ipcMain.on('minimize:main-window', () => mainWindow.minimize())
+
+ipcMain.on('maximize:main-window', () => mainWindow.maximize())
+
+ipcMain.on('unmaximize:main-window', () => mainWindow.unmaximize())
+
+ipcMain.on('close:main-window', () => mainWindow.close())
+
+function showAbout() {
+    let build_date = '(2023.08.07)'
+    dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
+        message: 'Clippiez',
+        detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
+        buttons: ['OK & Close', 'YUH APPS Website'],
+        defaultId: 0,
+        noLink: true,
+        normalizeAccessKeys: process.platform === 'win32'
+    }).then(({ response }) => {
+        if (response === 1) shell.openExternal('https://yuhapps.dev')
+    })
+}
+
+function createAppMenu() {
     let menu = [
         {
             label: 'Clippiez',
@@ -53,7 +124,7 @@ app.whenReady().then(() => {
                     ]
                 },
                 {
-                    label: 'Appearance',
+                    label: 'Theme',
                     submenu: [
                         {
                             label: 'System',
@@ -62,7 +133,7 @@ app.whenReady().then(() => {
                             click: (menuItem, browserWindow, event) => {
                                 settings['appearance'] = 'system'
                                 menuItem.checked = true
-                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, nativeTheme.shouldUseDarkColors, settings['font'] === 'lato'))
                             }
                         },
                         {
@@ -72,7 +143,7 @@ app.whenReady().then(() => {
                             click: (menuItem, browserWindow, event) => {
                                 settings['appearance'] = 'light'
                                 menuItem.checked = true
-                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, false, settings['font'] === 'lato'))
                             }
                         },
                         {
@@ -82,9 +153,34 @@ app.whenReady().then(() => {
                             click: (menuItem, browserWindow, event) => {
                                 settings['appearance'] = 'dark'
                                 menuItem.checked = true
-                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, true, settings['font'] === 'lato'))
                             }
                         },
+                    ]
+                },
+                {
+                    label: 'Font',
+                    submenu: [
+                        {
+                            label: 'System',
+                            checked: settings['font'] === undefined || settings['font'] === 'system',
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['font'] = 'system'
+                                menuItem.checked = true
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, false, false))
+                            }
+                        },
+                        {
+                            label: 'Lato',
+                            checked: settings['font'] === 'lato',
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['font'] = 'lato'
+                                menuItem.checked = true
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, false, true))
+                            }
+                        }
                     ]
                 },
                 { type: 'separator' },
@@ -141,34 +237,10 @@ app.whenReady().then(() => {
     ]
     if (app.isPackaged === false) menu.splice(3, 0, { role: 'viewMenu' })
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate(menu) : null)
-    createMainWindow()
-})
+}
 
-app.on('window-all-closed', app.quit)
-
-app.on('quit', () => {
-    fs.writeFileSync(path.join(app.getPath('userData'), 'clips.json'), JSON.stringify(clips))
-    fs.writeFileSync(path.join(app.getPath('userData'), 'settings.json'), JSON.stringify(settings))
-})
-
-nativeTheme.addListener('updated', () => {
-    if (settings['appearance'] === 'system') {
-        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', process.platform, nativeTheme.shouldUseDarkColors))
-    }
-})
-
-ipcMain.on('delete-clip', (e, index) => {
-    if (clips.length > 0) {
-        clips.splice(index, 1)
-    }
-})
-
-ipcMain.on('new', (e) => {
-    createAddClipWindow(mainWindow)
-})
-
-ipcMain.on('show-options', (e, bounds) => {
-    let platform = process.platform
+function createAppOptionsMenu(bounds) {
+    let platform = PLATFORM || process.platform
     let menu = Menu.buildFromTemplate([
         {
             label: 'Import from JSON',
@@ -226,7 +298,7 @@ ipcMain.on('show-options', (e, bounds) => {
             ]
         },
         {
-            label: 'Appearance',
+            label: 'Theme',
             submenu: [
                 {
                     label: 'System',
@@ -235,7 +307,7 @@ ipcMain.on('show-options', (e, bounds) => {
                     click: (menuItem, browserWindow, event) => {
                         settings['appearance'] = 'system'
                         menuItem.checked = true
-                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors))
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, settings['font'] === 'lato'))
                     }
                 },
                 {
@@ -245,7 +317,7 @@ ipcMain.on('show-options', (e, bounds) => {
                     click: (menuItem, browserWindow, event) => {
                         settings['appearance'] = 'light'
                         menuItem.checked = true
-                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors))
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, false, settings['font'] === 'lato'))
                     }
                 },
                 {
@@ -255,9 +327,34 @@ ipcMain.on('show-options', (e, bounds) => {
                     click: (menuItem, browserWindow, event) => {
                         settings['appearance'] = 'dark'
                         menuItem.checked = true
-                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors))
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, true, settings['font'] === 'lato'))
                     }
                 },
+            ]
+        },
+        {
+            label: 'Font',
+            submenu: [
+                {
+                    label: 'System',
+                    checked: settings['font'] === undefined || settings['font'] === 'system',
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['font'] = 'system'
+                        menuItem.checked = true
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, false))
+                    }
+                },
+                {
+                    label: 'Lato',
+                    checked: settings['font'] === 'lato',
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['font'] = 'lato'
+                        menuItem.checked = true
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, true))
+                    }
+                }
             ]
         },
         {
@@ -269,46 +366,12 @@ ipcMain.on('show-options', (e, bounds) => {
         }
     ])
     menu.popup({ x: Math.round(bounds.x), y: Math.round(bounds.y) })
-})
-
-ipcMain.on('clip-added', (e, text, background) => {
-    console.log('clip-added')
-    try {
-        let newClips = JSON.parse(text)
-        clips = [...clips, ...newClips]
-        mainWindow.webContents.send('update', newClips)
-    } catch (err) {
-        let newClip = { text, background }
-        clips.push(newClip)
-        mainWindow.webContents.send('update', [newClip])
-    }
-})
-
-ipcMain.on('minimize:main-window', () => mainWindow.minimize())
-
-ipcMain.on('maximize:main-window', () => mainWindow.maximize())
-
-ipcMain.on('unmaximize:main-window', () => mainWindow.unmaximize())
-
-ipcMain.on('close:main-window', () => mainWindow.close())
-
-function showAbout() {
-    let build_date = '(2023.08.07)'
-    dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
-        message: 'Clippiez',
-        detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
-        buttons: ['OK & Close', 'YUH APPS Website'],
-        defaultId: 0,
-        noLink: true,
-        normalizeAccessKeys: process.platform === 'win32'
-    }).then(({ response }) => {
-        if (response === 1) shell.openExternal('https://yuhapps.dev')
-    })
 }
 
 function createMainWindow() {
-    let platform = process.platform
+    let platform = PLATFORM || process.platform
     let dark = settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark'
+    let lato = (settings['font'] || 'system')=== 'lato'
     if (fs.existsSync(path.join(app.getPath('userData'), 'clips.json'))) {
         let buffer = fs.readFileSync(path.join(app.getPath('userData'), 'clips.json'))
         clips = JSON.parse(String(buffer))
@@ -364,14 +427,13 @@ function createMainWindow() {
         // Thus it will behave like it's on Windows or Linux.
         mainWindow.setWindowButtonVisibility(platform === 'linux')
     }
-    mainWindow.loadFile('src/index.html')
+    mainWindow.loadFile('src/views/index.html')
     mainWindow.webContents.on('did-finish-load', (e) => {
-        mainWindow.webContents.send('platform', platform, dark)
+        mainWindow.webContents.send('platform', platform, dark, lato)
         mainWindow.webContents.send('update', clips)
         mainWindow.show()
     })
     mainWindow.webContents.on('context-menu', (e, { x, y, editFlags, selectionText }) => {
-        console.log(editFlags, selectionText, Boolean(selectionText))
         if (editFlags.canPaste) {
             Menu.buildFromTemplate([
                 { role: 'cut' },
@@ -402,7 +464,7 @@ function createAddClipWindow(browserWindow) {
             nodeIntegration: true
         }
     })
-    addWindow.loadFile('src/new.html')
+    addWindow.loadFile('src/views/new.html')
     // addWindow.on('ready-to-show', () => addWindow.show())
     addWindow.webContents.on('did-finish-load', (e) => {
         addWindow.webContents.send('platform', platform, dark)

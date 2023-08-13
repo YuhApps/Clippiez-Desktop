@@ -1,12 +1,12 @@
 {
   "name": "clippiez",
   "productName": "Clippiez",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Clippiez app for Windows, Mac and Linux.",
   "main": "src/app.js",
   "scripts": {
     "start": "npx electron .",
-    "pack": "electron-builder -m -w zip nsis -l tar.xz deb",
+    "pack": "electron-builder -m --x64 --arm64 && electron-builder -w zip nsis -l tar.xz deb --x64",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -37,5 +37,8 @@
     "@electron/notarize": "^2.1.0",
     "electron": "^25.4.0",
     "electron-builder": "^24.6.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.1"
   }
 }

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" class="dialog">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Clip</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="hidden">
+    <div class="textarea-wrapper">
+        <textarea name="clip" id="clip" placeholder="Plain text or Clip json with [{ text, background }] syntax"></textarea>
+    </div>
+    <div class="buttons-wrapper">
+        <select onchange="onColorPicked(this)">
+            <option value="#FFFFFF">White</option>
+            <option value="#FFCDD2">Red</option>
+            <option value="#FFE0B2">Orange</option>
+            <option value="#FFF9C4">Yellow</option>
+            <option value="#C8E6C9">Green</option>
+            <option value="#BBDEFB">Blue</option>
+            <option value="#C5CAE9">Indigo</option>
+            <option value="#E1BEE7">Purple</option>
+            <option value="#E0E0E0">Grey</option>
+        </select>
+        <span style="width: 100px"></span>
+        <button class="button-10" onclick="window.close()">Cancel</button>
+        <span style="width: 20px"></span>
+        <button class="save button-10" onclick="submit()">Save</button>
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron')
+        const textarea = document.querySelector('textarea')
+
+        ipcRenderer.on('platform', (e, platform, dark) => {
+            document.body.classList.add(platform)
+            document.body.classList[dark ? 'add' : 'remove']('dark')
+            document.body.classList.remove('hidden')
+        })
+
+        function onColorPicked(select) {
+            textarea.style.background = select.value
+        }
+
+        function submit() {
+            ipcRenderer.send('clip-added', textarea.value, textarea.style.background || '#FFFFFF')
+            window.close()
+        }
+    </script>
+</body>
+</html>

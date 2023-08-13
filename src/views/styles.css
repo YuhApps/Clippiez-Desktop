@@ -1,0 +1,266 @@
+@font-face {
+    font-family: 'Lato';
+    font-weight: normal;
+    src: URL('../fonts/lato_regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-weight: bold;
+    src: URL('../fonts/lato_bold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: normal;
+    src: URL('../fonts/montserrat_regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Montserrat';
+    font-weight: normal;
+    src: URL('../fonts/montserrat_bold.ttf') format('truetype');
+}
+
+html {
+    --color-header-foreground: #404040;
+}
+body {
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    font-family: sans-serif;
+    height: 100vh;
+    max-height: 100vh;
+    min-height: 100vh;
+    margin: 0;
+    overflow-y: hidden;
+    padding: 0;
+}
+body.lato {
+    font-family: 'Lato';
+}
+body.dark {
+    background: #202020;
+}
+body.dark.win32 {
+    background: #000000;
+}
+header {
+    background: white;
+    display: flex;
+    flex-direction: row;
+    padding: 8px;
+    z-index: 1;
+    -webkit-app-region: drag;
+}
+.dark header {
+    background: #404040;
+}
+.dark.win32 header {
+    background: #303030;
+}
+header * {
+    -webkit-app-region: no-drag;
+}
+header span {
+    -webkit-app-region: drag;
+}
+header input {
+    border: 2px solid #aaaaaa; 
+    border-radius: 8px;
+    background: transparent;
+    color: #000000;
+    margin: 0 20px;
+    min-width: 420px;
+    max-width: 960px;
+    outline: none;
+    padding: 6px;
+    text-align: center;
+    width: 60%;
+    -webkit-app-region: no-drag;
+}
+header input:focus {
+    border: 2px solid #000000;
+}
+header .spacer {
+    flex: 1;
+}
+.dark header input {
+    color: #FFFFFF;
+}
+.dark header input:focus {
+    border: 2px solid #FFFFFF;
+}
+.dark header svg path {
+    fill: #FFFFFF;
+}
+button {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    outline: none;
+    padding: 4px;
+    transition-duration: .25s;
+}
+button:hover {
+    background: #80808060;
+}
+svg {
+    display: block;
+    height: 24px;
+    width: 24px;
+}
+svg path {
+    fill: var(--color-header-foreground);
+}
+main {
+    flex: 1;
+    overflow-y: scroll;
+}
+main ul {
+    list-style: none;
+    margin: auto;
+    padding:  20px 0;
+    text-align: center;
+}
+main li {
+    align-items: stretch;
+    border-radius: 4px;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    justify-items: center;
+    margin: 8px;
+    max-width: 640px;
+    padding: 12px;
+    text-align: left;
+    width: 100%;
+}
+main li span {
+    flex: 1;
+    margin-right: 8px;
+}
+.hidden {
+    display: none;
+}
+.card {
+    box-shadow: rgba(9, 30, 66, 0.25) 0px 1px 1px, rgba(9, 30, 66, 0.13) 0px 0px 1px 1px;
+}
+.darwin .hide-on-darwin {
+    display: none !important;
+}
+
+.linux .hide-on-linux {
+    display: none !important;
+}
+
+.win32 .hide-on-win32 {
+    display: none !important;
+}
+
+.win32 .options:hover {
+    background: #4FC3F7;
+}
+
+.win32 .minimize:hover {
+    background: #FDD835;
+}
+
+.win32 .maximize:hover, .unmaximize:hover {
+    background: #00E676;
+}
+
+.win32 .close:hover {
+    background: #FF5252;
+}
+
+.win32.dark .options:hover {
+    background: #039BE5;
+}
+
+.win32.dark .minimize:hover {
+    background: #F9A825;
+}
+
+.win32.dark .maximize:hover, .dark .unmaximize:hover {
+    background: #4CAF50;
+}
+
+.win32.dark .close:hover {
+    background: #F44336;
+}
+::selection {
+    background: #2b2d42;
+    color: #edf2f4;
+}
+
+
+body div {
+    padding: 20px;
+}
+textarea {
+    background: #FFFFFF;
+    box-sizing: border-box;
+    border-radius: 8px;
+    color: #000000;
+    height: 100%;
+    outline: none;
+    padding: 8px;
+    resize: none;
+    width: 100%;
+}
+.textarea-wrapper {
+    flex: 1;
+    text-align: center;
+}
+.buttons-wrapper {
+    display: flex;
+    flex-direction: row;
+}
+.buttons-wrapper select {
+    appearance: none;
+    background: transparent;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat, repeat;
+    background-position: right .7em top 50%, 0 0;
+    background-size: .65em auto, 100%;
+    border: 1px solid #000000;
+    border-radius: 6px;
+    box-shadow: rgba(27, 31, 35, 0.04) 0 1px 0, rgba(255, 255, 255, 0.25) 0 1px 0 inset;
+    font-weight: bold;
+    flex: 2;
+    outline: none;
+    padding: 6px 16px;
+}
+.buttons-wrapper button {
+    appearance: none;
+    background-color: transparent;
+    border: 1px solid #000000;
+    border-radius: 6px;
+    box-shadow: rgba(27, 31, 35, 0.04) 0 1px 0, rgba(255, 255, 255, 0.25) 0 1px 0 inset;
+    color: #000000;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 80px;
+    padding: 6px 16px;
+    user-select: none;
+    touch-action: manipulation;
+    vertical-align: middle;
+    white-space: nowrap;
+    word-wrap: break-word;
+}
+.buttons-wrapper button.save {
+    background: black; color: white;
+}
+.dark .buttons-wrapper select {
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+}
+.dark .buttons-wrapper button, .dark .buttons-wrapper select {
+    border: 1px solid white;
+    color: white;
+}
+.dark .buttons-wrapper button.save {
+    background: #404040;
+}
