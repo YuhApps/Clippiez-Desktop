@@ -1,14 +1,15 @@
-const { app, BrowserWindow, ipcMain, Menu, nativeTheme, dialog, shell } = require('electron')
+const { app, BrowserWindow, clipboard, ipcMain, Menu, nativeImage, nativeTheme, dialog, shell, Tray } = require('electron')
 const { autoUpdater } = require('electron-updater')
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
-
+const sound = require('sound-play')
 const PLATFORM = undefined
 
 let clips = []
 let settings
 let mainWindow
+let tray
 
 app.whenReady().then(() => {
     if (fs.existsSync(path.join(app.getPath('userData'), 'settings.json'))) {
@@ -17,15 +18,55 @@ app.whenReady().then(() => {
         settings = {
             'appearance': 'system',
             'always_on_top': false,
-            'font': 'system'
+            'dock-icon': true,
+            'font': 'system',
+            'tray': undefined
         }
     }
+    app.setActivationPolicy(settings['dock-icon'] === false ? 'accessory' : 'regular')
     createAppMenu()
-    createMainWindow()
-    autoUpdater.checkForUpdatesAndNotify()
+    createTrayIcon(settings['tray'])
+    if (settings['dock-icon'] !== false) {
+        createMainWindow()
+    } else if (fs.existsSync(path.join(app.getPath('userData'), 'clips.json'))) {
+        let buffer = fs.readFileSync(path.join(app.getPath('userData'), 'clips.json'))
+        clips = JSON.parse(String(buffer))
+    } else if (clips.length === 0) {
+        clips = [
+            {
+                text: 'Welcome to Clippiez!!!',
+                background: '#FFE0B2',
+            },
+            {
+                text: 'Are you someone who usually copies and pastes from templates? This app is right for you. Just define all the text clips you need, so you can copy and paste them later with ease.',
+                background: '#C8E6C9',
+            },
+            {
+                text: 'To get started, click the pen button on the top ' + (platform === 'darwin' || platform === 'linux' ? 'right' : 'left') + ' corner of Clippiez to create a new clip.',
+                background: '#BBDEFB',
+            },
+            {
+                text: 'To copy text from a clip, for example, this yellow one, click the Copy icon right next to this text.',
+                background: '#FFF9C4',
+            },
+            {
+                text: 'To delete a clip, for example, this red one, click the Delete button whose icon is a circle containing a vertical line from the right edge of this clip.',
+                background: '#FFCDD2'
+            },
+            {
+                text: 'More options can be found by clicking the Menu button in the top ' + (platform === 'darwin' ? 'right' : 'left') + ' corner. Visit https://yuhapps.dev for more info.',
+                background: '#E1BEE7'
+            }
+        ]
+    }
+    // autoUpdater.checkForUpdatesAndNotify()
 })
 
-app.on('window-all-closed', app.quit)
+app.on('activate', createMainWindow)
+
+app.on('window-all-closed', () => {
+    if (tray === undefined) app.quit()
+})
 
 app.on('quit', () => {
     fs.writeFileSync(path.join(app.getPath('userData'), 'clips.json'), JSON.stringify(clips))
@@ -73,7 +114,7 @@ ipcMain.on('unmaximize:main-window', () => mainWindow.unmaximize())
 ipcMain.on('close:main-window', () => mainWindow.close())
 
 function showAbout() {
-    let build_date = '(2023.08.07)'
+    let build_date = '(2023.10.17)'
     dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
         message: 'Clippiez',
         detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
@@ -131,7 +172,7 @@ function createAppMenu() {
                             checked: settings['appearance'] === 'system',
                             type: 'radio',
                             click: (menuItem, browserWindow, event) => {
-                                settings['appearance'] = 'system'
+                                nativeTheme.themeSource = settings['appearance'] = 'system'
                                 menuItem.checked = true
                                 BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, nativeTheme.shouldUseDarkColors, settings['font'] === 'lato'))
                             }
@@ -141,7 +182,7 @@ function createAppMenu() {
                             checked: settings['appearance'] === 'light',
                             type: 'radio',
                             click: (menuItem, browserWindow, event) => {
-                                settings['appearance'] = 'light'
+                                nativeTheme.themeSource = settings['appearance'] = 'light'
                                 menuItem.checked = true
                                 BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, false, settings['font'] === 'lato'))
                             }
@@ -151,7 +192,7 @@ function createAppMenu() {
                             checked: settings['appearance'] === 'dark',
                             type: 'radio',
                             click: (menuItem, browserWindow, event) => {
-                                settings['appearance'] = 'dark'
+                                nativeTheme.themeSource = settings['appearance'] = 'dark'
                                 menuItem.checked = true
                                 BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, true, settings['font'] === 'lato'))
                             }
@@ -181,6 +222,31 @@ function createAppMenu() {
                                 BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, false, true))
                             }
                         }
+                    ]
+                },
+                {
+                    label: 'Tray icon',
+                    submenu: [
+                        {
+                            label: 'On',
+                            checked: settings['tray'] === true,
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['tray'] = true
+                                menuItem.checked = true
+                                createTrayIcon(true)
+                            }
+                        },
+                        {
+                            label: 'Off',
+                            checked: settings['tray'] !== true,
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['tray'] = false
+                                menuItem.checked = true
+                                createTrayIcon(false)
+                            }
+                        },
                     ]
                 },
                 { type: 'separator' },
@@ -228,6 +294,16 @@ function createAppMenu() {
                                 clips = []
                             }
                         })
+                    }
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: 'Clear system clipboard',
+                    click: (menuItem, browserWindow, event) => {
+                        clipboard.clear()
+                        sound.play('src/views/done.wav')
                     }
                 }
             ]
@@ -305,7 +381,7 @@ function createAppOptionsMenu(bounds) {
                     checked: settings['appearance'] === 'system',
                     type: 'radio',
                     click: (menuItem, browserWindow, event) => {
-                        settings['appearance'] = 'system'
+                        nativeTheme.themeSource = settings['appearance'] = 'system'
                         menuItem.checked = true
                         BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, settings['font'] === 'lato'))
                     }
@@ -315,7 +391,7 @@ function createAppOptionsMenu(bounds) {
                     checked: settings['appearance'] === 'light',
                     type: 'radio',
                     click: (menuItem, browserWindow, event) => {
-                        settings['appearance'] = 'light'
+                        nativeTheme.themeSource = settings['appearance'] = 'light'
                         menuItem.checked = true
                         BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, false, settings['font'] === 'lato'))
                     }
@@ -325,7 +401,7 @@ function createAppOptionsMenu(bounds) {
                     checked: settings['appearance'] === 'dark',
                     type: 'radio',
                     click: (menuItem, browserWindow, event) => {
-                        settings['appearance'] = 'dark'
+                        nativeTheme.themeSource = settings['appearance'] = 'dark'
                         menuItem.checked = true
                         BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, true, settings['font'] === 'lato'))
                     }
@@ -358,17 +434,57 @@ function createAppOptionsMenu(bounds) {
             ]
         },
         {
+            label: 'Tray icon',
+            submenu: [
+                {
+                    label: 'On',
+                    checked: settings['tray'] === true,
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['tray'] = true
+                        menuItem.checked = true
+                        createTrayIcon(true)
+                    }
+                },
+                {
+                    label: 'Off',
+                    checked: settings['tray'] !== true,
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['tray'] = false
+                        menuItem.checked = true
+                        createTrayIcon(false)
+                    }
+                },
+            ]
+        },
+        {
             type: 'separator'
+        },
+        {
+            label: 'Clear system clipboard',
+            click: (menuItem, browserWindow, event) => {
+                clipboard.clear()
+                sound.play('src/views/done.wav')
+            }
         },
         {
             label: 'About Clippiez',
             click: showAbout
+        },
+        {
+            label: 'Quit Clippiez',
+            click: app.quit
         }
     ])
     menu.popup({ x: Math.round(bounds.x), y: Math.round(bounds.y) })
 }
 
 function createMainWindow() {
+    if (mainWindow !== undefined && mainWindow.isDestroyed() === false) {
+        mainWindow.show()
+        return
+    }
     let platform = PLATFORM || process.platform
     let dark = settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark'
     let lato = (settings['font'] || 'system')=== 'lato'
@@ -412,6 +528,7 @@ function createMainWindow() {
         fullscreenable: false,
         titleBarStyle: platform === 'darwin' ? 'hiddenInset' : platform === 'win32' ? 'hidden' : 'default',
         show: false,
+        skipTaskbar: !settings['dock-icon'],
         webPreferences: {
             contextIsolation: false,
             nodeIntegration: true,
@@ -433,8 +550,8 @@ function createMainWindow() {
         mainWindow.webContents.send('update', clips)
         mainWindow.show()
     })
-    mainWindow.webContents.on('context-menu', (e, { x, y, editFlags, selectionText }) => {
-        if (editFlags.canPaste) {
+    mainWindow.webContents.on('context-menu', (e, { x, y, editFlags, inputFieldType, selectionText }) => { 
+        if (inputFieldType !== 'none') {
             Menu.buildFromTemplate([
                 { role: 'cut' },
                 { role: 'copy' },
@@ -465,11 +582,206 @@ function createAddClipWindow(browserWindow) {
         }
     })
     addWindow.loadFile('src/views/new.html')
-    // addWindow.on('ready-to-show', () => addWindow.show())
     addWindow.webContents.on('did-finish-load', (e) => {
         addWindow.webContents.send('platform', platform, dark)
         addWindow.show()
     })
+}
+
+function createTrayIcon(t) {
+    if (t) {
+        tray = new Tray(nativeImage.createFromPath(resolveResourcesPath('trayTemplate.png')))
+        tray.on('click', (event) => {
+            console.log(settings['dock-icon'])
+            tray.popUpContextMenu(Menu.buildFromTemplate(
+                mainWindow && mainWindow.isDestroyed() === false ? [
+                    {
+                        label: 'Import from JSON',
+                        click: (menuItem, browserWindow, event) => importFromJson(browserWindow)
+                    },
+                    {
+                        label: 'Export as JSON',
+                        click: (menuItem, browserWindow, event) => exportAsJson(browserWindow)
+                    },
+                    {
+                        type: 'separator'
+                    },
+                    {
+                        label: 'Delete all clips',
+                        click: (menuItem, browserWindow, event) => {
+                            dialog.showMessageBox(browserWindow, {
+                                message: 'Delete all clips?\nThis cannot be undone.',
+                                buttons: ['Delete', 'Cancel'],
+                                defaultId: 1,
+                                noLink: true
+                            }).then(({ response }) => {
+                                if (response === 0) {
+                                    browserWindow.webContents.send('delete-all')
+                                    clips = []
+                                }
+                            })
+                        }
+                    },
+                    {
+                        type: 'separator'
+                    },
+                    {
+                        label: 'Always on top',
+                        submenu: [
+                            {
+                                label: 'On',
+                                checked: settings['always_on_top'] === true,
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    browserWindow.setAlwaysOnTop(true)
+                                    settings['always_on_top'] = true
+                                    menuItem.checked = true
+                                }
+                            },
+                            {
+                                label: 'Off',
+                                checked: settings['always_on_top'] === false,
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    browserWindow.setAlwaysOnTop(false)
+                                    settings['always_on_top'] = false
+                                    menuItem.checked = true
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        label: 'Theme',
+                        submenu: [
+                            {
+                                label: 'System',
+                                checked: settings['appearance'] === 'system',
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    nativeTheme.themeSource = settings['appearance'] = 'system'
+                                    menuItem.checked = true
+                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, settings['font'] === 'lato'))
+                                }
+                            },
+                            {
+                                label: 'Light',
+                                checked: settings['appearance'] === 'light',
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    nativeTheme.themeSource = settings['appearance'] = 'light'
+                                    menuItem.checked = true
+                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, false, settings['font'] === 'lato'))
+                                }
+                            },
+                            {
+                                label: 'Dark',
+                                checked: settings['appearance'] === 'dark',
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    nativeTheme.themeSource = settings['appearance'] = 'dark'
+                                    menuItem.checked = true
+                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, true, settings['font'] === 'lato'))
+                                }
+                            },
+                        ]
+                    },
+                    {
+                        label: 'Font',
+                        submenu: [
+                            {
+                                label: 'System',
+                                checked: settings['font'] === undefined || settings['font'] === 'system',
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    settings['font'] = 'system'
+                                    menuItem.checked = true
+                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, false))
+                                }
+                            },
+                            {
+                                label: 'Lato',
+                                checked: settings['font'] === 'lato',
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    settings['font'] = 'lato'
+                                    menuItem.checked = true
+                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, true))
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        label: 'Dock icon',
+                        submenu: [
+                            {
+                                label: 'On',
+                                checked: settings['dock-icon'] !== false,
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    settings['dock-icon'] = true
+                                    menuItem.checked = true
+                                    if (mainWindow && mainWindow.isDestroyed() === false) {
+                                        mainWindow.setSkipTaskbar(false)
+                                    }
+                                    if (process.platform === 'darwin') {
+                                        app.setActivationPolicy('regular')
+                                    }
+                                }
+                            },
+                            {
+                                label: 'Off',
+                                checked: settings['dock-icon'] === false,
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    settings['dock-icon'] = false
+                                    menuItem.checked = true
+                                    if (mainWindow && mainWindow.isDestroyed() === false) {
+                                        mainWindow.setSkipTaskbar(true)
+                                    }
+                                    if (process.platform === 'darwin') {
+                                        app.setActivationPolicy('accessory')
+                                    }
+                                }
+                            },
+                        ]
+                    },
+                    {
+                        type: 'separator'
+                    },
+                    {
+                        label: 'Clear system clipboard',
+                        click: (menuItem, browserWindow, event) => {
+                            clipboard.clear()
+                            sound.play('src/views/done.wav')
+                        }
+                    },
+                    {
+                        label: 'About Clippiez',
+                        click: showAbout
+                    },
+                    {
+                        label: 'Quit Clippiez',
+                        click: app.quit
+                    }
+                ] : [
+                    { label: 'Manage clips', click: createMainWindow },
+                    { role: 'quit' },
+                    { type: 'separator' },
+                    ...clips.map((clip) => ({
+                        label: clip.text.length > 50 ? clip.text.substring(0, 50) + '...' : clip.text,
+                        click: () => clipboard.writeText(clip.text)
+                    }))
+                ]
+            ))
+        })
+    } else if (tray !== undefined) {
+        tray.destroy()
+        tray = undefined
+    }
+}
+
+function resolveResourcesPath(name) {
+    return app.isPackaged ? path.join(process.resourcesPath, 'assets', name) : path.join(__dirname, 'assets', name)
 }
 
 function importFromJson(browserWindow) {

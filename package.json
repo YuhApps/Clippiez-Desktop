@@ -1,7 +1,7 @@
 {
   "name": "clippiez",
   "productName": "Clippiez",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Clippiez app for Windows, Mac and Linux.",
   "main": "src/app.js",
   "scripts": {
@@ -21,8 +21,20 @@
     "afterSign": "./notarize.js",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "asar": true,
+    "extraResources": [
+      {
+          "from": "./src/assets",
+          "to": "assets",
+          "filter": [
+              "**/*"
+          ]
+      }
+  ],
     "mac": {
-      "notarize": false
+      "notarize": false,
+      "extendInfo": {
+        "LSUIElement": true
+      }
     },
     "win": {
       "artifactName": "${productName}-${version}-windows-${arch}.${ext}"
@@ -35,10 +47,11 @@
   "license": "ISC",
   "devDependencies": {
     "@electron/notarize": "^2.1.0",
-    "electron": "^25.4.0",
+    "electron": "^25.8.4",
     "electron-builder": "^24.6.3"
   },
   "dependencies": {
-    "electron-updater": "^6.1.1"
+    "electron-updater": "^6.1.1",
+    "sound-play": "^1.1.0"
   }
 }
