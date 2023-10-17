@@ -59,7 +59,7 @@ app.whenReady().then(() => {
             }
         ]
     }
-    // autoUpdater.checkForUpdatesAndNotify()
+    autoUpdater.checkForUpdatesAndNotify()
 })
 
 app.on('activate', createMainWindow)
@@ -546,7 +546,7 @@ function createMainWindow() {
     }
     mainWindow.loadFile('src/views/index.html')
     mainWindow.webContents.on('did-finish-load', (e) => {
-        mainWindow.webContents.send('platform', platform, dark, lato)
+        mainWindow.webContents.send('platform', platform, dark, lato, settings['dock-icon'])
         mainWindow.webContents.send('update', clips)
         mainWindow.show()
     })
@@ -592,123 +592,18 @@ function createTrayIcon(t) {
     if (t) {
         tray = new Tray(nativeImage.createFromPath(resolveResourcesPath('trayTemplate.png')))
         tray.on('click', (event) => {
-            console.log(settings['dock-icon'])
+            if (settings['tray-tip'] === undefined || settings['tray-tip'] < 1) {
+                dialog.showMessageBox({
+                    message: 'IMPORTANT',
+                    detail: 'Click the Tray icon to see the clips and click on any of them to copy the text. Hold ' + (process.platform === 'darwin' ? 'Option' : 'Alt') + ' key and click the Tray icon for app options.'
+                }).then(() => settings['tray-tip'] = 1)
+                return
+            }
             tray.popUpContextMenu(Menu.buildFromTemplate(
-                mainWindow && mainWindow.isDestroyed() === false ? [
+                event.altKey ? [
                     {
-                        label: 'Import from JSON',
-                        click: (menuItem, browserWindow, event) => importFromJson(browserWindow)
-                    },
-                    {
-                        label: 'Export as JSON',
-                        click: (menuItem, browserWindow, event) => exportAsJson(browserWindow)
-                    },
-                    {
-                        type: 'separator'
-                    },
-                    {
-                        label: 'Delete all clips',
-                        click: (menuItem, browserWindow, event) => {
-                            dialog.showMessageBox(browserWindow, {
-                                message: 'Delete all clips?\nThis cannot be undone.',
-                                buttons: ['Delete', 'Cancel'],
-                                defaultId: 1,
-                                noLink: true
-                            }).then(({ response }) => {
-                                if (response === 0) {
-                                    browserWindow.webContents.send('delete-all')
-                                    clips = []
-                                }
-                            })
-                        }
-                    },
-                    {
-                        type: 'separator'
-                    },
-                    {
-                        label: 'Always on top',
-                        submenu: [
-                            {
-                                label: 'On',
-                                checked: settings['always_on_top'] === true,
-                                type: 'radio',
-                                click: (menuItem, browserWindow, event) => {
-                                    browserWindow.setAlwaysOnTop(true)
-                                    settings['always_on_top'] = true
-                                    menuItem.checked = true
-                                }
-                            },
-                            {
-                                label: 'Off',
-                                checked: settings['always_on_top'] === false,
-                                type: 'radio',
-                                click: (menuItem, browserWindow, event) => {
-                                    browserWindow.setAlwaysOnTop(false)
-                                    settings['always_on_top'] = false
-                                    menuItem.checked = true
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        label: 'Theme',
-                        submenu: [
-                            {
-                                label: 'System',
-                                checked: settings['appearance'] === 'system',
-                                type: 'radio',
-                                click: (menuItem, browserWindow, event) => {
-                                    nativeTheme.themeSource = settings['appearance'] = 'system'
-                                    menuItem.checked = true
-                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, settings['font'] === 'lato'))
-                                }
-                            },
-                            {
-                                label: 'Light',
-                                checked: settings['appearance'] === 'light',
-                                type: 'radio',
-                                click: (menuItem, browserWindow, event) => {
-                                    nativeTheme.themeSource = settings['appearance'] = 'light'
-                                    menuItem.checked = true
-                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, false, settings['font'] === 'lato'))
-                                }
-                            },
-                            {
-                                label: 'Dark',
-                                checked: settings['appearance'] === 'dark',
-                                type: 'radio',
-                                click: (menuItem, browserWindow, event) => {
-                                    nativeTheme.themeSource = settings['appearance'] = 'dark'
-                                    menuItem.checked = true
-                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, true, settings['font'] === 'lato'))
-                                }
-                            },
-                        ]
-                    },
-                    {
-                        label: 'Font',
-                        submenu: [
-                            {
-                                label: 'System',
-                                checked: settings['font'] === undefined || settings['font'] === 'system',
-                                type: 'radio',
-                                click: (menuItem, browserWindow, event) => {
-                                    settings['font'] = 'system'
-                                    menuItem.checked = true
-                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, false))
-                                }
-                            },
-                            {
-                                label: 'Lato',
-                                checked: settings['font'] === 'lato',
-                                type: 'radio',
-                                click: (menuItem, browserWindow, event) => {
-                                    settings['font'] = 'lato'
-                                    menuItem.checked = true
-                                    BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, true))
-                                }
-                            }
-                        ]
+                        label: 'Manage clips',
+                        click: createMainWindow
                     },
                     {
                         label: 'Dock icon',
@@ -756,21 +651,71 @@ function createTrayIcon(t) {
                         }
                     },
                     {
-                        label: 'About Clippiez',
-                        click: showAbout
+                        label: 'Quit Clippiez',
+                        click: app.quit
+                    }
+                ] : clips.map((clip) => ({
+                        label: clip.text.length > 50 ? clip.text.substring(0, 50) + '...' : clip.text,
+                        click: () => clipboard.writeText(clip.text)
+                }))
+            ))
+        })
+        tray.on('right-click', (event) => {
+            tray.popUpContextMenu(Menu.buildFromTemplate(
+                [
+                    {
+                        label: 'Manage clips',
+                        click: createMainWindow
+                    },
+                    {
+                        label: 'Dock icon',
+                        submenu: [
+                            {
+                                label: 'On',
+                                checked: settings['dock-icon'] !== false,
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    settings['dock-icon'] = true
+                                    menuItem.checked = true
+                                    if (mainWindow && mainWindow.isDestroyed() === false) {
+                                        mainWindow.setSkipTaskbar(false)
+                                    }
+                                    if (process.platform === 'darwin') {
+                                        app.setActivationPolicy('regular')
+                                    }
+                                }
+                            },
+                            {
+                                label: 'Off',
+                                checked: settings['dock-icon'] === false,
+                                type: 'radio',
+                                click: (menuItem, browserWindow, event) => {
+                                    settings['dock-icon'] = false
+                                    menuItem.checked = true
+                                    if (mainWindow && mainWindow.isDestroyed() === false) {
+                                        mainWindow.setSkipTaskbar(true)
+                                    }
+                                    if (process.platform === 'darwin') {
+                                        app.setActivationPolicy('accessory')
+                                    }
+                                }
+                            },
+                        ]
+                    },
+                    {
+                        type: 'separator'
+                    },
+                    {
+                        label: 'Clear system clipboard',
+                        click: (menuItem, browserWindow, event) => {
+                            clipboard.clear()
+                            sound.play('src/views/done.wav')
+                        }
                     },
                     {
                         label: 'Quit Clippiez',
                         click: app.quit
                     }
-                ] : [
-                    { label: 'Manage clips', click: createMainWindow },
-                    { role: 'quit' },
-                    { type: 'separator' },
-                    ...clips.map((clip) => ({
-                        label: clip.text.length > 50 ? clip.text.substring(0, 50) + '...' : clip.text,
-                        click: () => clipboard.writeText(clip.text)
-                    }))
                 ]
             ))
         })

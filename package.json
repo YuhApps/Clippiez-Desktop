@@ -23,13 +23,13 @@
     "asar": true,
     "extraResources": [
       {
-          "from": "./src/assets",
-          "to": "assets",
-          "filter": [
-              "**/*"
-          ]
+        "from": "./src/assets",
+        "to": "assets",
+        "filter": [
+          "**/*"
+        ]
       }
-  ],
+    ],
     "mac": {
       "notarize": false,
       "extendInfo": {
@@ -47,11 +47,11 @@
   "license": "ISC",
   "devDependencies": {
     "@electron/notarize": "^2.1.0",
-    "electron": "^25.8.4",
-    "electron-builder": "^24.6.3"
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
   },
   "dependencies": {
-    "electron-updater": "^6.1.1",
+    "electron-updater": "^6.1.4",
     "sound-play": "^1.1.0"
   }
 }
