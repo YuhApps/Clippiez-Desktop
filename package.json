@@ -1,7 +1,7 @@
 {
   "name": "clippiez",
   "productName": "Clippiez",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Clippiez app for Windows, Mac and Linux.",
   "main": "src/app.js",
   "scripts": {

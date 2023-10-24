@@ -114,7 +114,7 @@ ipcMain.on('unmaximize:main-window', () => mainWindow.unmaximize())
 ipcMain.on('close:main-window', () => mainWindow.close())
 
 function showAbout() {
-    let build_date = '(2023.10.17)'
+    let build_date = '(2023.10.24)'
     dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
         message: 'Clippiez',
         detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
@@ -138,6 +138,27 @@ function createAppMenu() {
                 },
                 {
                     type: 'separator'
+                },
+                {
+                    label: 'Auto Launch ' + (process.platform === 'darwin' ? 'at Login' : 'on startup'),
+                    submenu: [
+                        {
+                            label: 'On',
+                            checked: app.getLoginItemSettings().openAtLogin,
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                app.setLoginItemSettings({ openAtLogin: true })
+                            }
+                        },
+                        {
+                            label: 'Off',
+                            checked: !app.getLoginItemSettings().openAtLogin,
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                app.setLoginItemSettings({ openAtLogin: false })
+                            }
+                        }
+                    ]
                 },
                 {
                     label: 'Always on top',
@@ -347,6 +368,27 @@ function createAppOptionsMenu(bounds) {
         },
         {
             type: 'separator'
+        },
+        {
+            label: 'Auto Launch ' + (process.platform === 'darwin' ? 'at Login' : 'on startup'),
+            submenu: [
+                {
+                    label: 'On',
+                    checked: app.getLoginItemSettings().openAtLogin,
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        app.setLoginItemSettings({ openAtLogin: true })
+                    }
+                },
+                {
+                    label: 'Off',
+                    checked: !app.getLoginItemSettings().openAtLogin,
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        app.setLoginItemSettings({ openAtLogin: false })
+                    }
+                }
+            ]
         },
         {
             label: 'Always on top',
