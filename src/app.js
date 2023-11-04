@@ -10,6 +10,7 @@ let clips = []
 let settings
 let mainWindow
 let tray
+let updateAvailable = false
 
 app.whenReady().then(() => {
     if (fs.existsSync(path.join(app.getPath('userData'), 'settings.json'))) {
@@ -59,13 +60,18 @@ app.whenReady().then(() => {
             }
         ]
     }
+    autoUpdater.on('update-downloaded', () => updateAvailable = true)
     autoUpdater.checkForUpdatesAndNotify()
 })
 
 app.on('activate', createMainWindow)
 
 app.on('window-all-closed', () => {
-    if (tray === undefined) app.quit()
+    if (tray === undefined) {
+        app.quit()
+    } else if (updateAvailable) {
+        autoUpdater.quitAndInstall()
+    }
 })
 
 app.on('quit', () => {
