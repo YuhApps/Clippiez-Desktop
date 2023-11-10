@@ -87,10 +87,12 @@
             }
         })
 
-        ipcRenderer.on('platform', (e, platform, dark, lato, dockIcon) => {
+        ipcRenderer.on('platform', (e, platform, dark, font, dockIcon) => {
+            console.log(font)
             document.body.classList.add(platform)
             document.body.classList[dark ? 'add' : 'remove']('dark')
-            document.body.classList[lato ? 'add' : 'remove']('lato')
+            document.body.classList[font === 'lato' ? 'add' : 'remove']('lato')
+            document.body.classList[font === 'nunito' ? 'add' : 'remove']('nunito')
             document.body.classList.remove('hidden')
             if (platform === 'darwin' && dockIcon === false) {
                 document.querySelectorAll('.hide-on-darwin-with-dock').forEach((el) => el.classList.remove('hidden'))

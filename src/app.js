@@ -5,6 +5,7 @@ const os = require('os')
 const path = require('path')
 const sound = require('sound-play')
 const PLATFORM = undefined
+const BUILD_DATE = '2023.11.10'
 
 let clips = []
 let settings
@@ -60,8 +61,6 @@ app.whenReady().then(() => {
             }
         ]
     }
-    autoUpdater.on('update-downloaded', () => updateAvailable = true)
-    autoUpdater.checkForUpdatesAndNotify()
 })
 
 app.on('activate', createMainWindow)
@@ -120,10 +119,9 @@ ipcMain.on('unmaximize:main-window', () => mainWindow.unmaximize())
 ipcMain.on('close:main-window', () => mainWindow.close())
 
 function showAbout() {
-    let build_date = '(2023.10.24)'
     dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
         message: 'Clippiez',
-        detail: 'Version ' + app.getVersion() + ' ' + build_date + '\nDeveloped by YUH APPS',
+        detail: 'Version ' + app.getVersion() + ' (' + BUILD_DATE + ')\nDeveloped by YUH APPS',
         buttons: ['OK & Close', 'YUH APPS Website'],
         defaultId: 0,
         noLink: true,
@@ -134,6 +132,7 @@ function showAbout() {
 }
 
 function createAppMenu() {
+    let platform = PLATFORM || process.platform
     let menu = [
         {
             label: 'Clippiez',
@@ -236,7 +235,7 @@ function createAppMenu() {
                             click: (menuItem, browserWindow, event) => {
                                 settings['font'] = 'system'
                                 menuItem.checked = true
-                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, false, false))
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark', 'system'))
                             }
                         },
                         {
@@ -246,7 +245,17 @@ function createAppMenu() {
                             click: (menuItem, browserWindow, event) => {
                                 settings['font'] = 'lato'
                                 menuItem.checked = true
-                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', PLATFORM || process.platform, false, true))
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark', 'lato'))
+                            }
+                        },
+                        {
+                            label: 'Nunito',
+                            checked: settings['font'] === 'nunito',
+                            type: 'radio',
+                            click: (menuItem, browserWindow, event) => {
+                                settings['font'] = 'nunito'
+                                menuItem.checked = true
+                                BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark', 'nunito'))
                             }
                         }
                     ]
@@ -466,7 +475,7 @@ function createAppOptionsMenu(bounds) {
                     click: (menuItem, browserWindow, event) => {
                         settings['font'] = 'system'
                         menuItem.checked = true
-                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, false))
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark', 'system'))
                     }
                 },
                 {
@@ -476,7 +485,17 @@ function createAppOptionsMenu(bounds) {
                     click: (menuItem, browserWindow, event) => {
                         settings['font'] = 'lato'
                         menuItem.checked = true
-                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, nativeTheme.shouldUseDarkColors, true))
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark', 'lato'))
+                    }
+                },
+                {
+                    label: 'Nunito',
+                    checked: settings['font'] === 'nunito',
+                    type: 'radio',
+                    click: (menuItem, browserWindow, event) => {
+                        settings['font'] = 'nunito'
+                        menuItem.checked = true
+                        BrowserWindow.getAllWindows().forEach((window) => window.webContents.send('platform', platform, settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark', 'nunito'))
                     }
                 }
             ]
@@ -533,9 +552,12 @@ function createMainWindow() {
         mainWindow.show()
         return
     }
+    autoUpdater.checkForUpdatesAndNotify()
+        .then((res) => updateAvailable = res && res.updateInfo.version > app.getVersion())
+        .catch((error) => console.log(error))
     let platform = PLATFORM || process.platform
     let dark = settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark'
-    let lato = (settings['font'] || 'system')=== 'lato'
+    let font = settings['font'] || 'system'
     if (fs.existsSync(path.join(app.getPath('userData'), 'clips.json'))) {
         let buffer = fs.readFileSync(path.join(app.getPath('userData'), 'clips.json'))
         clips = JSON.parse(String(buffer))
@@ -594,7 +616,7 @@ function createMainWindow() {
     }
     mainWindow.loadFile('src/views/index.html')
     mainWindow.webContents.on('did-finish-load', (e) => {
-        mainWindow.webContents.send('platform', platform, dark, lato, settings['dock-icon'])
+        mainWindow.webContents.send('platform', platform, dark, font, settings['dock-icon'])
         mainWindow.webContents.send('update', clips)
         mainWindow.show()
     })
