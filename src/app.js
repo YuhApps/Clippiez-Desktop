@@ -5,13 +5,14 @@ const os = require('os')
 const path = require('path')
 const sound = require('sound-play')
 const PLATFORM = undefined
-const BUILD_DATE = '2023.11.10'
+const BUILD_DATE = '2023.11.30'
 
 let clips = []
 let settings
 let mainWindow
 let tray
 let updateAvailable = false
+let lastCFU = new Date().getTime()
 
 app.whenReady().then(() => {
     if (fs.existsSync(path.join(app.getPath('userData'), 'settings.json'))) {
@@ -61,6 +62,14 @@ app.whenReady().then(() => {
             }
         ]
     }
+    autoUpdater.checkForUpdatesAndNotify()
+    .then((res) => {
+        updateAvailable = res && res.updateInfo.version > app.getVersion()
+        if (updateAvailable === false) {
+            lastCFU = new Date().getTime()
+        }
+    })
+    .catch((error) => console.log(error))
 })
 
 app.on('activate', createMainWindow)
@@ -552,9 +561,6 @@ function createMainWindow() {
         mainWindow.show()
         return
     }
-    autoUpdater.checkForUpdatesAndNotify()
-        .then((res) => updateAvailable = res && res.updateInfo.version > app.getVersion())
-        .catch((error) => console.log(error))
     let platform = PLATFORM || process.platform
     let dark = settings['appearance'] === 'system' ? nativeTheme.shouldUseDarkColors : settings['appearance'] === 'dark'
     let font = settings['font'] || 'system'
@@ -662,6 +668,17 @@ function createTrayIcon(t) {
     if (t) {
         tray = new Tray(nativeImage.createFromPath(resolveResourcesPath('trayTemplate.png')))
         tray.on('click', (event) => {
+            let now = new Date().getTime()
+            if (now >= lastCFU + 86400000) {
+                autoUpdater.checkForUpdatesAndNotify()
+                .then((res) => {
+                    updateAvailable = res && res.updateInfo.version > app.getVersion()
+                    if (updateAvailable === false) {
+                        lastCFU = now
+                    }
+                })
+                .catch((error) => console.log(error))
+            }
             if (settings['tray-tip'] === undefined || settings['tray-tip'] < 1) {
                 dialog.showMessageBox({
                     message: 'IMPORTANT',
@@ -671,6 +688,15 @@ function createTrayIcon(t) {
             }
             tray.popUpContextMenu(Menu.buildFromTemplate(
                 event.altKey ? [
+                    {
+                        label: 'Install update',
+                        click: () => autoUpdater.quitAndInstall(),
+                        visible: updateAvailable === true
+                    },
+                    {
+                        type: 'separator',
+                        visible: updateAvailable === true
+                    },
                     {
                         label: 'Manage clips',
                         click: createMainWindow
@@ -724,15 +750,35 @@ function createTrayIcon(t) {
                         label: 'Quit Clippiez',
                         click: app.quit
                     }
-                ] : clips.map((clip) => ({
+                ] : [ 
+                    {
+                        label: 'Install update',
+                        click: () => autoUpdater.quitAndInstall(),
+                        visible: updateAvailable === true
+                    },
+                    {
+                        type: 'separator',
+                        visible: updateAvailable === true
+                    },
+                    ...clips.map((clip) => ({
                         label: clip.text.length > 50 ? clip.text.substring(0, 50) + '...' : clip.text,
                         click: () => clipboard.writeText(clip.text)
-                }))
+                    }))
+                ]
             ))
         })
         tray.on('right-click', (event) => {
             tray.popUpContextMenu(Menu.buildFromTemplate(
                 [
+                    {
+                        label: 'Install update',
+                        click: () => autoUpdater.quitAndInstall(),
+                        visible: updateAvailable === true
+                    },
+                    {
+                        type: 'separator',
+                        visible: updateAvailable === true
+                    },
                     {
                         label: 'Manage clips',
                         click: createMainWindow
