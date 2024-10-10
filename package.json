@@ -1,7 +1,7 @@
 {
   "name": "clippiez",
   "productName": "Clippiez",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Clippiez app for Windows, Mac and Linux.",
   "main": "src/app.js",
   "scripts": {
@@ -46,12 +46,12 @@
   "author": "Yuh Apps <yuhapps@gmail.com>",
   "license": "ISC",
   "devDependencies": {
-    "@electron/notarize": "^2.2.0",
-    "electron": "^27.1.2",
-    "electron-builder": "^24.9.1"
+    "@electron/notarize": "^2.5.0",
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.7"
   },
   "dependencies": {
-    "electron-updater": "^6.1.7",
+    "electron-updater": "^6.3.9",
     "sound-play": "^1.1.0"
   }
 }

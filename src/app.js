@@ -5,14 +5,14 @@ const os = require('os')
 const path = require('path')
 const sound = require('sound-play')
 const PLATFORM = undefined
-const BUILD_DATE = '2023.11.30'
+const BUILD_DATE = '2024.10.10'
 
 let clips = []
 let settings
 let mainWindow
 let tray
 let updateAvailable = false
-let lastCFU = new Date().getTime()
+let lastCFU = Date.now()
 
 app.whenReady().then(() => {
     if (fs.existsSync(path.join(app.getPath('userData'), 'settings.json'))) {
@@ -29,6 +29,7 @@ app.whenReady().then(() => {
     app.setActivationPolicy(settings['dock-icon'] === false ? 'accessory' : 'regular')
     createAppMenu()
     createTrayIcon(settings['tray'])
+    checkForUpdatesAndNotify()
     if (settings['dock-icon'] !== false) {
         createMainWindow()
     } else if (fs.existsSync(path.join(app.getPath('userData'), 'clips.json'))) {
@@ -62,14 +63,6 @@ app.whenReady().then(() => {
             }
         ]
     }
-    autoUpdater.checkForUpdatesAndNotify()
-    .then((res) => {
-        updateAvailable = res && res.updateInfo.version > app.getVersion()
-        if (updateAvailable === false) {
-            lastCFU = new Date().getTime()
-        }
-    })
-    .catch((error) => console.log(error))
 })
 
 app.on('activate', createMainWindow)
@@ -117,6 +110,7 @@ ipcMain.on('clip-added', (e, text, background) => {
         clips.push(newClip)
         mainWindow.webContents.send('update', [newClip])
     }
+    fs.writeFileSync(path.join(app.getPath('userData'), 'clips.json'), JSON.stringify(clips))
 })
 
 ipcMain.on('minimize:main-window', () => mainWindow.minimize())
@@ -545,6 +539,9 @@ function createAppOptionsMenu(bounds) {
             }
         },
         {
+            type: 'separator'
+        },
+        {
             label: 'About Clippiez',
             click: showAbout
         },
@@ -668,17 +665,7 @@ function createTrayIcon(t) {
     if (t) {
         tray = new Tray(nativeImage.createFromPath(resolveResourcesPath('trayTemplate.png')))
         tray.on('click', (event) => {
-            let now = new Date().getTime()
-            if (now >= lastCFU + 86400000) {
-                autoUpdater.checkForUpdatesAndNotify()
-                .then((res) => {
-                    updateAvailable = res && res.updateInfo.version > app.getVersion()
-                    if (updateAvailable === false) {
-                        lastCFU = now
-                    }
-                })
-                .catch((error) => console.log(error))
-            }
+            checkForUpdatesAndNotify()
             if (settings['tray-tip'] === undefined || settings['tray-tip'] < 1) {
                 dialog.showMessageBox({
                     message: 'IMPORTANT',
@@ -904,4 +891,14 @@ function exportAsJson(browserWindow) {
             browserWindow.setAlwaysOnTop(true)
         }
     })
+}
+
+function checkForUpdatesAndNotify() {
+    if (updateAvailable || Date.now() < lastCFU + 86400000) {
+        return
+    }
+    autoUpdater.checkForUpdatesAndNotify()
+    .then((res) => updateAvailable = res && res.updateInfo.version > app.getVersion())
+    .catch((error) => console.log(error))
+    lastCFU = Date.now()
 }
